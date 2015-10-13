@@ -156,7 +156,7 @@ ul, ol, dl {
   <script>window.jQuery || document.write('<script src="js/libs/jquery-1.7.1.min.js"><\/script>')</script>
 	<!--Load the AJAX API-->
 	    <script type="text/javascript" src="https://www.google.com/jsapi"></script>
-		<script type="text/javascript" src="algorithm2016.js"></script>
+		<script type="text/javascript" src="tsvParseTest.js"></script>
 
   <!-- Asynchronous Google Analytics snippet. Change UA-XXXXX-X to be your site's ID.
        mathiasbynens.be/notes/async-analytics-snippet -->
