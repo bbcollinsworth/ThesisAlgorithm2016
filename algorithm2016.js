@@ -14,14 +14,14 @@ var numstudents = 0;
 
 jQuery(document).ready(function($) {
 	// list of teachers -- B.C. : MUST BE HAND-UPDATED YEARLY UNLESS CODE IS REDONE
-	var burroughs = [
-		"Travis",
-		"MacDonald",
-		"Sicchio",
-		"Crean",
-		"Pobiner",
-		"Sharp",
-		"Seymour"
+	var teachers = [
+		// "Travis",
+		// "MacDonald",
+		// "Sicchio",
+		// "Crean",
+		// "Pobiner",
+		// "Sharp",
+		// "Seymour"
 	];
 	// unknown
 	var data;
@@ -39,9 +39,17 @@ jQuery(document).ready(function($) {
 	// B.C. : THESE AJAX CALLS PULL DATA FROM 2 JSON FILES: 
 	//"students.json" and "teachers.json" -- see GitHub README for JSON file formatting instructions
 	$.ajax({
-		dataType: "json",
-		url: "students.json",
-		success: function(d) {
+		// dataType: "json",
+		// url: "students.json",
+		// success: function(d) {
+
+		dataType: "text",
+		url: "data.txt",
+		success: function(textData) {
+
+			var dataRows = data.split("\\r");
+
+			console.log(dataRows);
 			// maybe not used
 			var counter = 0;
 			for (N in d.students) {
@@ -207,7 +215,7 @@ jQuery(document).ready(function($) {
 							}
 							sections[i] = {
 								"id": i,
-								"teacher": burroughs[i],
+								"teacher": teachers[i],
 								"total": 15,
 								"enrolled": [],
 								"teacher_pref": p,
@@ -428,7 +436,7 @@ jQuery(document).ready(function($) {
 							}
 							pr = pr.substr(0, pr.length - 2);
 							en = en.substr(0, en.length - 2);
-							$('.i-' + iteration + ' .theses tbody').append('<tr><td>' + burroughs[i] + '</td><td>' + theses[i].choices[0] + '</td><td>' + theses[i].choices[1] + '</td><td>' + theses[i].choices[2] + '</td><td>' + theses[i].chosen + '</td><td>' + theses[i].not_chosen + '</td><td>' + pr + '</td><td>' + en + '</td></tr>');
+							$('.i-' + iteration + ' .theses tbody').append('<tr><td>' + teachers[i] + '</td><td>' + theses[i].choices[0] + '</td><td>' + theses[i].choices[1] + '</td><td>' + theses[i].choices[2] + '</td><td>' + theses[i].chosen + '</td><td>' + theses[i].not_chosen + '</td><td>' + pr + '</td><td>' + en + '</td></tr>');
 						}
 					}
 
