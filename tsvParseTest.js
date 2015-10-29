@@ -370,6 +370,10 @@ function checkRepeat(n1, n2, total) {
 	}
 }
 
+//==========================================
+// T H I S  I S  T H E  M A I N  O N E
+//==========================================
+
 function sausage_factory() {
 	// after thesis object created
 	// data viz using google forms
@@ -442,7 +446,7 @@ function sausage_factory() {
 	// The remaining sections are contested
 	// Iterations (x3) 1st, 2nd, & 3rd choices for thesis
 	for (var n = 0; n < 3; n++) {
-		console.log("Doing contested sections for Choice " + n);
+		console.log("Doing contested sections for Choice " + (n + 1));
 		// For each section...
 		for (var i = 0; i < theses.length; i++) {
 			// Find out which students selected that section as this iteration's choice (1st, 2nd, or 3rd). i=thesis section, n=choice, 1-3
@@ -451,6 +455,11 @@ function sausage_factory() {
 			teacher_chosen = 0;
 			teacherChoice(i, choosers);
 		}
+
+		for (var i = 0; i < theses.length; i++) {
+			oneAttaTime(n, i);
+		}
+
 		for (var i = 0; i < theses.length; i++) {
 			//if (teacher_chosen > 0) {
 			friendIn(n, i);
@@ -459,9 +468,9 @@ function sausage_factory() {
 		for (var i = 0; i < theses.length; i++) {
 			friendOut(n, i);
 		}
-		for (var i = 0; i < theses.length; i++) {
-			oneAttaTime(n, i);
-		}
+		// for (var i = 0; i < theses.length; i++) {
+		// 	oneAttaTime(n, i);
+		// }
 		// Repeat for 2nd & 3rd choices...
 	}
 	anyLeft();
@@ -494,6 +503,10 @@ function sausage_factory() {
 		}
 	});
 }
+
+//==========================================
+// T H I S  W A S  T H E  M A I N  O N E
+//==========================================
 
 
 
@@ -553,15 +566,20 @@ function printResults() {
 
 
 function oneAttaTime(n, i) {
+	console.log("Running One At A Time");
 	// For all the students...
 	for (var j = 0; j < students.length; j++) {
 		// If they are not enrolled in this section and want to be...
-		if (students[shuffled_ids[j]].choices[n] == i && students[shuffled_ids[j]].thesis == -1) {
+		if (students[shuffled_ids[j]].choices[n] == theses[i].teacher && students[shuffled_ids[j]].thesis == -1) {
+		//if (students[shuffled_ids[j]].choices[n] == i && students[shuffled_ids[j]].thesis == -1) {
 			// If there's still room...
 			if (theses[i].enrolled.length < theses[i].total) {
 				// That student is enrolled in the section
 				addStudent(students[shuffled_ids[j]], i);
 				friendIn(n, i);
+
+				//is friend out problematic? it puts you in if one of your peer selects is in the class,
+				//even if they didn't select you
 				friendOut(n, i);
 			}
 		}
@@ -588,65 +606,69 @@ function teacherChoice(i, choosers) {
 
 function friendIn(n, i) {
 
-
+	console.log("Running friend in");
 	// Start with the 1st peer of every student (i.e. index "0" in that student's "peers" array)...
-	var peerIndex = 0;
-	// As long as we're still within the maximum number of peers...
-	while (peerIndex < maxPeers) {
-		//console.log(peerIndex);
+	// var peerIndex = 0;
+	// // As long as we're still within the maximum number of peers...
+	// while (peerIndex < maxPeers) {
+	// 	console.log("Peer Index is" + peerIndex);
 
-		// For all the students...
-		for (var j = 0; j < students.length; j++) {
-			//set up an easy variable representing the student at this index:
-			var thisStudent = students[shuffled_ids[j]];
+	// 	// For all the students...
+	// 	for (var j = 0; j < students.length; j++) {
+	// 		//set up an easy variable representing the student at this index:
+	// 		var thisStudent = students[shuffled_ids[j]];
 
-			//RUN FIRST FOR TEACHER PICKS (OTHERWISE THINGS CAN GET MESSY, e.g. peers of peers pulled in before all teacher pref peers)
-			for (var k = 0; k < theses[i].teacher_pref.length; k++) {
-				// If they are now enrolled in this section and they're a teacher pick and there's room...
-				if (thisStudent.thesis == i && shuffled_ids[j] == theses[i].teacher_pref[k] && theses[i].enrolled.length < theses[i].total) {
+	// 		//RUN FIRST FOR TEACHER PICKS (OTHERWISE THINGS CAN GET MESSY, e.g. peers of peers pulled in before all teacher pref peers)
+	// 		for (var k = 0; k < theses[i].teacher_pref.length; k++) {
+	// 			// If they are now enrolled in this section and they're a teacher pick and there's room...
+	// 			if (thisStudent.thesis == i && shuffled_ids[j] == theses[i].teacher_pref[k] && theses[i].enrolled.length < theses[i].total) {
 
-					// Check to see if this student still has peers in their peer array
-					// (since students can select fewer peers than the max)
-					if (peerIndex < thisStudent.peers.length) {
-						//create a counter to advance through this student's peers array, searching for the first peer who ranked this section
-						var peerIndexAdvance = 0;
+	// 				// Check to see if this student still has peers in their peer array
+	// 				// (since students can select fewer peers than the max)
+	// 				if (peerIndex < thisStudent.peers.length) {
+	// 					//create a counter to advance through this student's peers array, searching for the first peer who ranked this section
+	// 					var peerIndexAdvance = 0;
 
-						// Cycle through that sutdent's peers and find the first one (if any) who ranked this section as their choice for this iteration (1st, 2nd, 3rd)
-						while (peerIndexAdvance < thisStudent.peers.length - peerIndex) {
-							var tempIndex = peerIndex + peerIndexAdvance;
-							var peerID = thisStudent.peers[tempIndex];
-							//console.log("Peer" + peerID + " of " + thisStudent.name);
-							//console.log(students[peerID]);
+	// 					// Cycle through that sutdent's peers and find the first one (if any) who ranked this section as their choice for this iteration (1st, 2nd, 3rd)
+	// 					while (peerIndexAdvance < thisStudent.peers.length - peerIndex) {
+	// 						var tempIndex = peerIndex + peerIndexAdvance;
+	// 						var peerID = thisStudent.peers[tempIndex];
+	// 						//console.log("Peer" + peerID + " of " + thisStudent.name);
+	// 						//console.log(students[peerID]);
 
-							//if this peer has chosen this thesis and isn't already in a section...
-							if (students[peerID] !== undefined && students[peerID].choices[n] !== undefined && students[peerID].choices[n] == theses[i].teacher && students[peerID].thesis == -1) {
+	// 						//if this peer has chosen this thesis and isn't already in a section...
+	// 						if (students[peerID] !== undefined && students[peerID].choices[n] !== undefined && students[peerID].choices[n] == theses[i].teacher && students[peerID].thesis == -1) {
 
-								addStudent(students[peerID], i);
-								//console.log("Peer " + students[peerID].name + " of " + thisStudent.name + " added to " + i + "!");
-								//then break the while loop:
-								break;
-								//otherwise keep looking for a peer to add:
-							} else {
-								peerIndexAdvance++;
-							}
+	// 							addStudent(students[peerID], i);
+	// 							//console.log("Peer " + students[peerID].name + " of " + thisStudent.name + " added to " + i + "!");
+	// 							//then break the while loop:
+	// 							break;
+	// 							//otherwise keep looking for a peer to add:
+	// 						} else {
+	// 							peerIndexAdvance++;
+	// 						}
 
-						}
-					}
-				}
+	// 					}
+	// 				}
+	// 			}
 
-			}
-		}
-		// Within the while loop, increment the peerIndex to run through the next set of peers for all students
-		peerIndex++;
-	}
+	// 		}
+	// 	}
+	// 	// Within the while loop, increment the peerIndex to run through the next set of peers for all students
+	// 	peerIndex++;
+	// }
 
 	// RUN THE WHOLE THING AGAIN FOR NON-TEACHER PICKS...
 
 	// reset the peer index (to loop through peer arrays of all non-teacher picks)
 	peerIndex = 0;
-	// As long as we're still within the maximum number of peers...
-	while (peerIndex < maxPeers) {
-		//console.log(peerIndex);
+	// As long as we're still within the maximum number of peers allowed...
+	// while (peerIndex < maxPeers) {
+
+	//this allows more peers if someone gets their 2nd or 3rd choice
+	var peersAllowed = n+1;
+	while (peerIndex < peersAllowed) {
+		console.log("Peer Index is: " + peerIndex);
 
 		// For all the students...
 
@@ -693,6 +715,8 @@ function friendIn(n, i) {
 
 
 function friendOut(n, i) {
+
+	console.log("Running Friend Out");
 	// For all the students...
 	for (var j = 0; j < students.length; j++) {
 		// If they are not enrolled in this section and want to be...
