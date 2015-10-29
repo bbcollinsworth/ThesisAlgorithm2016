@@ -607,7 +607,8 @@ function teacherChoice(i, choosers) {
 
 
 function friendIn(n, i) {
-
+	//n = choice ranking (1st, 2nd, 3rd as 0,1,2); 
+	//i = thesis section (as array indices 0 - max);
 	console.log("Running friend in");
 
 	// RUN THE WHOLE THING AGAIN FOR NON-TEACHER PICKS...
