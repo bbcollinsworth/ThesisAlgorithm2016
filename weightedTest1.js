@@ -6,7 +6,7 @@
 var teachers = [
 	"Romero",
 	"Carroll",
-	"Irish",
+	"Harding",
 	"Macklin",
 	"Sebek",
 	"Genova",
@@ -41,11 +41,14 @@ var minSectionSize = 8;
 //B.C.: maximum number of peers... MUST BE CHANGED EACH YEAR or SET TO AUTO-UPDATE
 var maxPeers = 2;
 
+var matchRound;
+
 var students = [];
 var student_data = [];
 var students_left = [];
 var theses = [];
 var shuffled_ids = [];
+var peerMatchBuffer = [];
 
 var dataviz;
 var iteration;
@@ -64,9 +67,6 @@ jQuery(document).ready(function($) {
 
 
 	$.ajax({
-		// dataType: "json",
-		// url: "students.json",
-		// success: function(d) {
 
 		dataType: "text",
 		url: "data/testDataClean.txt",
@@ -85,38 +85,47 @@ jQuery(document).ready(function($) {
 			numstudents = students.length;
 			// B.C.: The following creates an array of index numbers, from 0 to students.length, in random order
 			shuffled_ids = uniqueRandom(students.length, students.length);
-			theses = generateTheses();
-			console.log(theses);
 
-			getThesisInterest();
-			/*
+			$.ajax({
+
+				dataType: "text",
+				url: "data/teacherData.txt",
+				success: function(td) {
+
+					var teacherData = parseTSV(td);
+					theses = generateTheses(teacherData);
+					console.log(theses);
+
+					getThesisInterest();
+
+					matchInterests();
+					/*
 			for(var i=0;i<unshuffled_students.length;i++){
 				// students[i] = unshuffled_students[i];
 				students[i] = unshuffled_students[shuffled_ids[i]];
 			}
 */
-			// This is the algorithm
-			sausage_factory();
+					// This is the algorithm
+					sausage_factory();
 
-			// Get dataviz data
-			//var dataviz = dataviz();
-			dataviz = dataviz();
+					dataviz = dataviz();
 
-			ajaxed = true;
-			// Functions
+					ajaxed = true;
+					// Functions
 
 
-			$('#show_hide_students').click(function() {
-				if ($('table.students').hasClass('off')) {
-					$('table.students').removeClass('off');
-					$('#show_hide_students').html('-');
-				} else {
-					$('table.students').addClass('off');
-					$('#show_hide_students').html('+');
+					$('#show_hide_students').click(function() {
+						if ($('table.students').hasClass('off')) {
+							$('table.students').removeClass('off');
+							$('#show_hide_students').html('-');
+						} else {
+							$('table.students').addClass('off');
+							$('#show_hide_students').html('+');
+						}
+					});
 				}
 			});
-			//}
-			//}
+
 		}
 
 	});
@@ -139,11 +148,11 @@ function parseTSV(data) {
 
 	for (var i = 1; i < dataRows.length; i++) {
 
-		var newStudent = {};
+		var newRow = {};
 
 		//create empty student object and split data row into columns
 		var newData = dataRows[i].split("\t");
-		console.log("Student Row: " + newData);
+		console.log("New Row: " + newData);
 
 		//skip or exclude blank rows
 		if (newData[0] != "") {
@@ -153,14 +162,14 @@ function parseTSV(data) {
 			$.each(headers, function(j, header) {
 				//console.log("This Header Is: " + header);
 				header.toString();
-				newStudent[header] = newData[j];
-				console.log(header + ": " + newData[j]);
+				newRow[header] = newData[j];
+				//console.log(header + ": " + newData[j]);
 			});
 
 			//push new student object to array
-			parsedArray.push(newStudent);
-			console.log("New Student: ");
-			console.log(newStudent);
+			parsedArray.push(newRow);
+			console.log("New Parsed Row: ");
+			console.log(newRow);
 		}
 	}
 
@@ -221,18 +230,28 @@ function restructureRawStudentData(rawStudents) {
 		});
 		//console.log(choicesArr);
 
-		var formArr = thisStudent.form.split(", ");
-		formArr.forEach(function(formItem) {
-			//formItem.replace('""','"');
-			noQuotesArr = formItem.split('"');
-			formItem = "";
+		var rawFormArr = thisStudent.form.split(", ");
+		var formArr = [];
+		rawFormArr.forEach(function(formItem) {
+			formItem = formItem.toLowerCase();
+			var noQuotesArr = formItem.split('"');
 			noQuotesArr.forEach(function(el) {
-				formItem += el;
+				if (el !== "") {
+					formArr.push(el);
+				}
 			});
 		})
-		var lensArr = thisStudent.lens.split(", ");
-		lensArr.forEach(function(formItem) {
-			formItem.replace('""', '"');
+
+		var rawLensArr = thisStudent.lens.split(", ");
+		var lensArr = [];
+		rawLensArr.forEach(function(formItem) {
+			formItem = formItem.toLowerCase();
+			var noQuotesArr = formItem.split('"');
+			noQuotesArr.forEach(function(el) {
+				if (el !== "") {
+					lensArr.push(el);
+				}
+			});
 		})
 
 		var wtPointsToInt = function(w) {
@@ -262,7 +281,12 @@ function restructureRawStudentData(rawStudents) {
 				"form": formArr,
 				"lens": lensArr,
 				"weights": weights,
-				"thesis": -1 // -1 means they haven't been placed in a real thesis section yet
+				"thesis": -1, // -1 means they haven't been placed in a real thesis section yet
+				"matchAttempts": {
+					"byTeacher": 0,
+					"byInterest": 0,
+					"byPeer": 0
+				}
 			}
 			//counter++;
 		student_data.push(s);
@@ -271,25 +295,43 @@ function restructureRawStudentData(rawStudents) {
 	}
 }
 
-function generateTheses() {
+function generateStudents(student_data) {
+	// move contents from student_data into new students array
+	// push every student id into students_left
+	var students = [];
+	for (var i = 0; i < student_data.length; i++) {
+		students[i] = student_data[i];
+		students_left.push(students[i].id);
+	}
+	return students;
+}
+
+function generateTheses(teacher_data) {
 	var sections = [];
-	for (var i = 0; i < teachers.length; i++) {
-		// if teacher doesn't have a student preference(?) add a blank array
-		//if (!prefs[i]) {
-		p = [];
-		//} else {
-		// otherwise make p their set of preferences
-		//p = prefs[i];
-		//}
+	for (var i = 0; i < teacher_data.length; i++) {
+		var t = teacher_data[i];
+
+		var tFormArray = [
+			t.form1.toLowerCase(),
+			t.form2.toLowerCase(),
+			t.form3.toLowerCase()
+		];
+		var tLensArray = [
+			t.lens1.toLowerCase(),
+			t.lens2.toLowerCase(),
+			t.lens3.toLowerCase()
+		];
 
 		sections[i] = {
 			"id": i,
-			"teacher": teachers[i],
+			"teacher": t.teacher,
+			"teacherForms": tFormArray,
+			"teacherLenses": tLensArray,
 			"total": maxSectionSize,
 			"maxSize": maxSectionSize,
 			"minSize": minSectionSize,
 			"enrolled": [],
-			"teacher_pref": p,
+			"teacher_pref": [],
 			"choices": [],
 			"not_chosen": 0,
 			"chosen": 0,
@@ -300,6 +342,75 @@ function generateTheses() {
 	console.log(sections);
 	return sections;
 
+}
+
+function matchInterests() {
+	//go through each student...
+	students.forEach(function(student) {
+		//create an array of teachers to be sorted by matched interests
+		var interestMatchArray = [];
+
+		student.choices.forEach(function(choice) {
+			var matchedInterestCt = 0;
+			var matchedInterests = [];
+			var teacherLens = [];
+			var teacherForm = [];
+			for (var t in theses) {
+				if (choice == theses[t].teacher) {
+					teacherLens = theses[t].teacherLenses;
+					teacherForm = theses[t].teacherForms;
+					break;
+				}
+			}
+
+			student.lens.forEach(function(studentLens) {
+				for (l in teacherLens) {
+					if (studentLens == teacherLens[l]) {
+						//console.log("Interests " + studentLens + " and " + teacherLens[l] + " match!");
+						matchedInterestCt++;
+						matchedInterests.push(studentLens);
+						break;
+					}
+				}
+			});
+
+			student.form.forEach(function(studentForm) {
+				for (f in teacherForm) {
+					if (studentForm == teacherForm[f]) {
+						// if (studentForm == "vr / ar") {
+						// 	console.log("Interests " + studentForm + " and " + teacherForm[f] + " match!");
+						// }
+						matchedInterestCt++;
+						matchedInterests.push(studentForm);
+						break;
+					}
+				}
+			});
+
+			interestMatchArray.push({
+				"teacher": choice,
+				"interestMatch": matchedInterestCt,
+				"matchedInterests": matchedInterests
+			});
+		});
+
+		interestMatchArray.sort(function(a, b) {
+			return b.interestMatch - a.interestMatch;
+		});
+
+		// console.log("Sorted Interest Match for student: " + student.username);
+		// console.log(interestMatchArray);
+
+		var interestMatchNames = [];
+
+		interestMatchArray.forEach(function(item) {
+			interestMatchNames.push(item.teacher);
+		});
+
+		student["choicesByInterest"] = interestMatchNames;
+		console.log("Choices by Interest for " + student.username + " are:");
+		console.log(student.choicesByInterest);
+	});
 }
 
 function getThesisInterest() {
@@ -323,16 +434,6 @@ function getThesisInterest() {
 	}
 }
 
-function generateStudents(student_data) {
-	// move contents from student_data into new students array
-	// push every student id into students_left
-	var students = [];
-	for (var i = 0; i < student_data.length; i++) {
-		students[i] = student_data[i];
-		students_left.push(students[i].id);
-	}
-	return students;
-}
 
 
 //B.C.: this function generates a range of unique numbers between 0 and students.length in random order
@@ -422,58 +523,65 @@ function sausage_factory() {
 		theses[i].chosen = first + second + third;
 	}
 
+	matchRound = 1;
+
+	while (matchRound < 5) {
+		runWeightedMatch(matchRound);
+		matchRound++;
+	}
+
 	// Pre-Iteration (uncontested sections)
 	// For each section...
-	console.log("Checking for uncontested sections...");
-	for (var i = 0; i < theses.length; i++) {
-		// See how many people picked it as their first choice. i=thesis section, 0=1st choice
-		//var choosers = getChoice(i, 0);
-		var choosers = getChoice(theses[i].teacher, 0);
-		// If the number of 1st choice students is less than the total allowable students for that section...
-		if (choosers.length <= theses[i].total) {
-			console.log("Choosers less than thesis max for " + theses[i].teacher + "! Adding....");
-			// Add them all to that section
-			for (var j = 0; j < choosers.length; j++) {
-				// add student to thesis without any other checks
-				//console.log("Trying to add student: ");
-				//console.log(students[choosers[j]]);
-				addStudent(students[choosers[j]], i);
-			}
-		}
-	}
+	// console.log("Checking for uncontested sections...");
+	// for (var i = 0; i < theses.length; i++) {
+	// 	// See how many people picked it as their first choice. i=thesis section, 0=1st choice
+	// 	//var choosers = getChoice(i, 0);
+	// 	var choosers = getChoice(theses[i].teacher, 0);
+	// 	// If the number of 1st choice students is less than the total allowable students for that section...
+	// 	if (choosers.length <= theses[i].total) {
+	// 		console.log("Choosers less than thesis max for " + theses[i].teacher + "! Adding....");
+	// 		// Add them all to that section
+	// 		for (var j = 0; j < choosers.length; j++) {
+	// 			// add student to thesis without any other checks
+	// 			//console.log("Trying to add student: ");
+	// 			//console.log(students[choosers[j]]);
+	// 			addStudent(students[choosers[j]], i);
+	// 		}
+	// 	}
+	// }
 
 
-	// The remaining sections are contested
-	// Iterations (x3) 1st, 2nd, & 3rd choices for thesis
-	for (var n = 0; n < 3; n++) {
-		console.log("Doing contested sections for Choice " + (n + 1));
-		// For each section...
-		for (var i = 0; i < theses.length; i++) {
-			// Find out which students selected that section as this iteration's choice (1st, 2nd, or 3rd). i=thesis section, n=choice, 1-3
-			//var choosers = getChoice(i, n);
-			var choosers = getChoice(theses[i].teacher, 0);
-			teacher_chosen = 0;
-			teacherChoice(i, choosers);
-		}
+	// // The remaining sections are contested
+	// // Iterations (x3) 1st, 2nd, & 3rd choices for thesis
+	// for (var n = 0; n < 3; n++) {
+	// 	console.log("Doing contested sections for Choice " + (n + 1));
+	// 	// For each section...
+	// 	for (var i = 0; i < theses.length; i++) {
+	// 		// Find out which students selected that section as this iteration's choice (1st, 2nd, or 3rd). i=thesis section, n=choice, 1-3
+	// 		//var choosers = getChoice(i, n);
+	// 		var choosers = getChoice(theses[i].teacher, 0);
+	// 		teacher_chosen = 0;
+	// 		teacherChoice(i, choosers);
+	// 	}
 
-		for (var i = 0; i < theses.length; i++) {
-			oneAttaTime(n, i);
-		}
+	// 	for (var i = 0; i < theses.length; i++) {
+	// 		oneAttaTime(n, i);
+	// 	}
 
-		for (var i = 0; i < theses.length; i++) {
-			//if (teacher_chosen > 0) {
-			//friendIn(n, i);
-			//}
-		}
-		for (var i = 0; i < theses.length; i++) {
-			//friendOut(n, i);
-		}
-		// for (var i = 0; i < theses.length; i++) {
-		// 	oneAttaTime(n, i);
-		// }
-		// Repeat for 2nd & 3rd choices...
-	}
-	
+	// 	for (var i = 0; i < theses.length; i++) {
+	// 		//if (teacher_chosen > 0) {
+	// 		//friendIn(n, i);
+	// 		//}
+	// 	}
+	// 	for (var i = 0; i < theses.length; i++) {
+	// 		//friendOut(n, i);
+	// 	}
+	// 	// for (var i = 0; i < theses.length; i++) {
+	// 	// 	oneAttaTime(n, i);
+	// 	// }
+	// 	// Repeat for 2nd & 3rd choices...
+	// }
+
 	anyLeft();
 	printResults();
 	students_small = {
@@ -503,6 +611,7 @@ function sausage_factory() {
 			window.close();
 		}
 	});
+
 }
 
 //==========================================
@@ -561,7 +670,208 @@ function printResults() {
 		}
 		pr = pr.substr(0, pr.length - 2);
 		en = en.substr(0, en.length - 2);
-		$('.i-' + iteration + ' .theses tbody').append('<tr><td>' + teachers[i] + '</td><td>' + theses[i].choices[0] + '</td><td>' + theses[i].choices[1] + '</td><td>' + theses[i].choices[2] + '</td><td>' + theses[i].chosen + '</td><td>' + theses[i].not_chosen + '</td><td>' + pr + '</td><td>' + en + '</td></tr>');
+		$('.i-' + iteration + ' .theses tbody').append('<tr><td>' + theses[i].teacher + '</td><td>' + theses[i].choices[0] + '</td><td>' + theses[i].choices[1] + '</td><td>' + theses[i].choices[2] + '</td><td>' + theses[i].chosen + '</td><td>' + theses[i].not_chosen + '</td><td>' + pr + '</td><td>' + en + '</td></tr>');
+	}
+}
+
+function runWeightedMatch(r) {
+	//r = match round
+	console.log("Running weighted match for round " + r);
+
+	//w = weight level
+	var w = 10;
+
+	while (w > 0) {
+
+		for (var j = 0; j < students.length; j++) {
+			var thisStudent = students[shuffled_ids[j]];
+
+			if (thisStudent.thesis < 0) {
+				//if (thisStudent.matchAttempts < r && thisStudent.thesis < 0) {
+
+				//check if more than one thing is at this weight; if so, shuffle
+
+				if (thisStudent.matchAttempts.byTeacher < r && thisStudent.weights.teacherWt >= w) {
+					matchTeacher(thisStudent, false);
+					//run teacher match for all prefs lower than this interation
+				}
+
+				if (thisStudent.matchAttempts.byInterest < r && thisStudent.weights.interestWt >= w) {
+					matchTeacher(thisStudent, true);
+					//run teacher match by weight for all prefs lower than this iteration
+				}
+
+				if (thisStudent.matchAttempts.byPeer < r && thisStudent.weights.peerWt >= w) {
+					//check if any peers already in w/ space, 
+					//else push to peer buffer
+					matchByPeers(thisStudent);
+				}
+			}
+		}
+		w--;
+	}
+}
+
+function matchTeacher(s, matchByInterests) {
+	//if matchByInterest is true, fill in interest match variables
+	//otherwise, use teacher match variables
+
+	var choiceToMatch = [];
+	var maxAttempts = 0;
+
+	if (matchByInterests) {
+		console.log("Running Match Interests");
+		s.matchAttempts.byInterest++;
+		maxAttempts = s.matchAttempts.byInterest;
+		choiceToMatch = s.choicesByInterest;
+	} else {
+		console.log("Running Match Teacher");
+		s.matchAttempts.byTeacher++;
+		maxAttempts = s.matchAttempts.byTeacher;
+		choiceToMatch = s.choices;
+	}
+
+	var matchFound = false;
+
+	for (var i = 0; i < maxAttempts; i++) {
+		for (j in theses) {
+			//console.log("Checking " + s.choices[i] + " vs " + theses[j].teacher);
+			if (choiceToMatch[i] == theses[j].teacher) {
+				//console.log("Match found! Trying to add " + s.username + " to " + theses[j].teacher);
+				var thisSection = theses[j];
+				if (thisSection.enrolled.length < thisSection.maxSize) {
+					addStudent(s, j);
+					matchFound = true;
+					break;
+				}
+			}
+		}
+	}
+
+	if (matchFound && theses[s.thesis].enrolled.length < theses[s.thesis].maxSize) {
+		peerMatchBuffer.forEach(function(peerIndex) {
+			var otherStudent = students[peerIndex];
+
+			//s.matchattempts could also be matchRound
+			for (var i = 0; i < maxAttempts; i++) {
+
+				if (otherStudent.peers.length > i) {
+					if (otherStudent.peers[i] == s.id) {
+						console.log("Peer " + otherStudent.username + " found in buffer. Adding...");
+						addStudent(otherStudent, s.thesis);
+					}
+				}
+			}
+
+		});
+		//checkpeerbuffer
+	}
+}
+
+function matchByInterests(s) {
+	s.matchAttempts.byInterest++;
+	console.log("Running Match Interests");
+	for (var i = 0; i < s.matchAttempts.byInterest; i++) {
+		for (j in theses) {
+			if (s.choicesByInterest[i] == theses[j].teacher) {
+				var thisSection = theses[j];
+				if (thisSection.enrolled.length < thisSection.maxSize) {
+					addStudent(s, j);
+					break;
+				}
+			}
+		}
+	}
+}
+
+
+
+function matchByPeers(s) {
+	s.matchAttempts.byPeer++;
+	console.log("Running Match Peers");
+	var matchedWithPeer = false;
+
+	for (var p = 0; p < s.matchAttempts.byPeer; p++) {
+		//for (p in s.peers) {
+		if (s.peers.length > p) {
+			var peerIndex = s.peers[p];
+			if (students[peerIndex].thesis !== -1) {
+				var peerThesisIndex = students[peerIndex].thesis;
+				var thesisToCheck = theses[peerThesisIndex];
+				if (thesisToCheck.enrolled.length < thesisToCheck.maxSize) {
+					addStudent(s, peerThesisIndex);
+					matchedWithPeer = true;
+					break;
+				}
+			}
+		} else {
+			break;
+		}
+	}
+
+	if (!matchedWithPeer) {
+		//addtopeermatchbuffer;
+		peerMatchBuffer.push(s.id);
+		console.log("ID " + s.id + " pushed to peerMatchBuffer");
+	}
+}
+
+// function getSectionByTeacher(t) {
+// 	//var foundSection = {};
+// 	for (i in theses) {
+// 		if (t == theses[i].teacher) {
+// 			return theses[i];
+// 		}
+// 	}
+// }
+
+function weightedTeacherMatch() {
+
+}
+
+function sortStudentsByWt() {
+	var indexPlusWts = [];
+	for (var j = 0; j < students.length; j++) {
+		var thisStudent = students[shuffled_ids[j]];
+		var item = {
+			'index': shuffled_ids[j],
+			'tiWt': thisStudent.weights.teacherWt + thisStudent.weights.interestWt,
+			'pWt': thisStudent.weights.peerWt
+		}
+
+		indexPlusWts.push(item);
+	}
+
+	indexPlusWts.sort(function(a, b) {
+		return b.tiWt - a.tiWt;
+	});
+
+	console.log("Sorted Weights: ");
+	console.log(indexPlusWts);
+
+}
+
+function processStudent(n, i) {
+	for (var j = 0; j < students.length; j++) {
+		var thisStudent = students[shuffled_ids[j]];
+
+		var tWtRange = thisStudent.weights.teacherWt * 0.1;
+		var iWtRange = thisStudent.weights.interestWt * 0.1;
+		var pWtRange = thisStudent.weights.interestWt * 0.1;
+
+		var randomRoll = Math.random();
+
+		if (randomRoll < tWtRange) {
+			//Do teacher match
+		} else if (randomRoll > tWtRange && randomRoll < tWtRange + iWtRange) {
+			//Do teacher match based on les and form
+		} else {
+			//do peer match
+		}
+
+		for (var c in thisStudent.choices) {
+
+		}
 	}
 }
 
@@ -572,7 +882,7 @@ function oneAttaTime(n, i) {
 	for (var j = 0; j < students.length; j++) {
 		// If they are not enrolled in this section and want to be...
 		if (students[shuffled_ids[j]].choices[n] == theses[i].teacher && students[shuffled_ids[j]].thesis == -1) {
-		//if (students[shuffled_ids[j]].choices[n] == i && students[shuffled_ids[j]].thesis == -1) {
+			//if (students[shuffled_ids[j]].choices[n] == i && students[shuffled_ids[j]].thesis == -1) {
 			// If there's still room...
 			if (theses[i].enrolled.length < theses[i].total) {
 				// That student is enrolled in the section
@@ -620,7 +930,7 @@ function friendIn(n, i) {
 	// while (peerIndex < maxPeers) {
 
 	//this allows more peers if someone gets their 2nd or 3rd choice
-	var peersAllowed = n+1;
+	var peersAllowed = n + 1;
 	while (peerIndex < peersAllowed) {
 		console.log("Peer Index is: " + peerIndex);
 
@@ -678,16 +988,16 @@ function friendOut(n, i) {
 		//console.log("Peers for " + thisStudent.username + " are:");
 		//console.log(thisStudent.peers);
 		if (thisStudent.choices[n] == theses[i].teacher && thisStudent.thesis == -1) {
-			
+
 			//CHANGED THIS TO BE MAX PEERS:
 			var peersToRunThrough = maxPeers;
 
-			if (thisStudent.peers.length < maxPeers){
+			if (thisStudent.peers.length < maxPeers) {
 				peersToRunThrough = thisStudent.peers.length;
 			}
 
 			for (var k = 0; k < peersToRunThrough; k++) {
-			//for (var k = 0; k < thisStudent.peers.length; k++) {
+				//for (var k = 0; k < thisStudent.peers.length; k++) {
 				// If any of their peers are already enrolled in the section and there's still room...
 				var peerID = thisStudent.peers[k];
 				if (students[peerID].thesis == i && theses[i].enrolled.length < theses[i].total) {
@@ -714,6 +1024,7 @@ function spaceLeft(n, i) {
 }
 
 function anyLeft() {
+	console.log("Running Any Left");
 	// For each section...
 	for (var j = 0; j < students.length; j++) {
 		if (students[shuffled_ids[j]].thesis == -1) {
@@ -730,7 +1041,6 @@ function anyLeft() {
 
 
 
-
 function studentsLeft() {
 	var sl = [];
 	for (var i = 0; i < students.length; i++) {
@@ -743,34 +1053,43 @@ function studentsLeft() {
 
 function dataviz() {
 
+	console.log("Running dataviz");
+
 	for (var i = 0; i < students.length; i++) {
-		var thisStudent = students[shuffled_ids[i]];
+		//var thisStudent = students[shuffled_ids[i]];
+		var thisStudent = students[i];
 		var thesisIndex = thisStudent.thesis;
-		//console.log(thisStudent.name);
-		//console.log(theses[thesisIndex].teacher);
-		if (thisStudent.choices[0] == theses[thesisIndex].teacher) {
+		//console.log("This Student is: " + thisStudent.username);
+		//console.log("This student's thesis index is: " + thesisIndex);
 
-			got_first++;
-		} else if (thisStudent.choices[1] == theses[thesisIndex].teacher) {
-			got_second++;
-		} else if (thisStudent.choices[2] == theses[thesisIndex].teacher) {
-			got_third++
-		} else {
-			got_none++;
-		}
-		var peers = students[shuffled_ids[i]].peers;
-		var flag = false;
-		for (var j = 0; j < peers.length; j++) {
-			var peer_id = peers[j];
-			var peer = students[peer_id];
+		if (thisStudent.weights.teacherWt >= thisStudent.weights.peerWt) {
+			if (thisStudent.choices[0] == theses[thesisIndex].teacher) {
 
-			//need undefined because not all people have full peer lists
-			if (peer !== undefined && peer.thesis == students[shuffled_ids[i]].thesis) {
-				flag = true;
+				got_first++;
+			} else if (thisStudent.choices[1] == theses[thesisIndex].teacher) {
+				got_second++;
+			} else if (thisStudent.choices[2] == theses[thesisIndex].teacher) {
+				got_third++
+			} else {
+				got_none++;
 			}
 		}
-		if (flag) {
-			got_peers++;
+
+		if (thisStudent.weights.teacherWt < thisStudent.weights.peerWt) {
+			var peers = students[shuffled_ids[i]].peers;
+			var flag = false;
+			for (var j = 0; j < peers.length; j++) {
+				var peer_id = peers[j];
+				var peer = students[peer_id];
+
+				//need undefined because not all people have full peer lists
+				if (peer !== undefined && peer.thesis == students[shuffled_ids[i]].thesis) {
+					flag = true;
+				}
+			}
+			if (flag) {
+				got_peers++;
+			}
 		}
 	}
 

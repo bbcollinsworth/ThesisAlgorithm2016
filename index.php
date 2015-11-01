@@ -129,12 +129,27 @@ ul, ol, dl {
 				<table class="dataviz">
 					<thead>
 					<tr>
-						<th>Number &amp; % of Students that got 1st Choice</th>
-						<th>Number &amp; % of Students that got 2nd Choice</th>
-						<th>Number &amp; % of Students that got 3rd Choice</th>
-						<th>Number &amp; % of Students that got One of Their Choices</th>
-						<th>Number &amp; % of Students that got none of their choices</th>
-						<th>Number &amp; % of Students that got at least one of their friends in their section</th>
+						<th>Number + % of Students that got 1st Choice</th>
+						<th>Number + % of Students that got 2nd Choice</th>
+						<th>Number + % of Students that got 3rd Choice</th>
+						<th>Number + % of Students that got One of Their Choices</th>
+						<th>Number + % of Students that got none of their choices</th>
+						<th>Number + % of Students that got at least peer</th>
+					</tr>
+					</thead>
+					<tbody>
+					</tbody>
+				</table>
+
+				<table class="datavizNew">
+					<thead>
+					<tr>
+						<th>Students that weighted teacher highest &amp; got a top-3 choice</th>
+						<th>Number + % of Students that got 2nd Choice</th>
+						<th>Number + % of Students that got 3rd Choice</th>
+						<th>Number + % of Students that got One of Their Choices</th>
+						<th>Number + % of Students that got none of their choices</th>
+						<th>Number + % of Students that got at least peer</th>
 					</tr>
 					</thead>
 					<tbody>
@@ -156,7 +171,7 @@ ul, ol, dl {
   <script>window.jQuery || document.write('<script src="js/libs/jquery-1.7.1.min.js"><\/script>')</script>
 	<!--Load the AJAX API-->
 	    <script type="text/javascript" src="https://www.google.com/jsapi"></script>
-		<script type="text/javascript" src="tsvParseTest.js"></script>
+		<script type="text/javascript" src="weightedTest1.js"></script>
 
   <!-- Asynchronous Google Analytics snippet. Change UA-XXXXX-X to be your site's ID.
        mathiasbynens.be/notes/async-analytics-snippet -->
