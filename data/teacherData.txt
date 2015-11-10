@@ -1,8 +1,0 @@
-teacher	lens1	lens2	lens3	form1	form2	form3	spacer
-Carroll	activist	entrepreneur	professional designer	app / program	product	web	
-Genova	professional designer	entrepreneur	artist	garment / wearable	product	installation	
-Harding	artist	educator	entrepreneur	installation	performance	artwork	
-Macklin	academic researcher	educator	professional designer	game	app / program	product	
-Sebek	academic researcher	activist	educator	animation	VR / AR	performance	
-Tandefelt	activist	critical designer	professional designer	app / program	installation	VR / AR	
-Romero	critical designer	educator	entrepreneur	web	app/program	game	
