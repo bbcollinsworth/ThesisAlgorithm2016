@@ -51,6 +51,7 @@ var shuffled_ids = [];
 var peerMatchBuffer = [];
 
 var dataviz;
+var datavizNew;
 var iteration;
 
 var got_first = 0;
@@ -109,6 +110,8 @@ jQuery(document).ready(function($) {
 					sausage_factory();
 
 					dataviz = dataviz();
+
+					datavizNew = datavizNew();
 
 					ajaxed = true;
 					// Functions
@@ -530,58 +533,7 @@ function sausage_factory() {
 		matchRound++;
 	}
 
-	// Pre-Iteration (uncontested sections)
-	// For each section...
-	// console.log("Checking for uncontested sections...");
-	// for (var i = 0; i < theses.length; i++) {
-	// 	// See how many people picked it as their first choice. i=thesis section, 0=1st choice
-	// 	//var choosers = getChoice(i, 0);
-	// 	var choosers = getChoice(theses[i].teacher, 0);
-	// 	// If the number of 1st choice students is less than the total allowable students for that section...
-	// 	if (choosers.length <= theses[i].total) {
-	// 		console.log("Choosers less than thesis max for " + theses[i].teacher + "! Adding....");
-	// 		// Add them all to that section
-	// 		for (var j = 0; j < choosers.length; j++) {
-	// 			// add student to thesis without any other checks
-	// 			//console.log("Trying to add student: ");
-	// 			//console.log(students[choosers[j]]);
-	// 			addStudent(students[choosers[j]], i);
-	// 		}
-	// 	}
-	// }
-
-
-	// // The remaining sections are contested
-	// // Iterations (x3) 1st, 2nd, & 3rd choices for thesis
-	// for (var n = 0; n < 3; n++) {
-	// 	console.log("Doing contested sections for Choice " + (n + 1));
-	// 	// For each section...
-	// 	for (var i = 0; i < theses.length; i++) {
-	// 		// Find out which students selected that section as this iteration's choice (1st, 2nd, or 3rd). i=thesis section, n=choice, 1-3
-	// 		//var choosers = getChoice(i, n);
-	// 		var choosers = getChoice(theses[i].teacher, 0);
-	// 		teacher_chosen = 0;
-	// 		teacherChoice(i, choosers);
-	// 	}
-
-	// 	for (var i = 0; i < theses.length; i++) {
-	// 		oneAttaTime(n, i);
-	// 	}
-
-	// 	for (var i = 0; i < theses.length; i++) {
-	// 		//if (teacher_chosen > 0) {
-	// 		//friendIn(n, i);
-	// 		//}
-	// 	}
-	// 	for (var i = 0; i < theses.length; i++) {
-	// 		//friendOut(n, i);
-	// 	}
-	// 	// for (var i = 0; i < theses.length; i++) {
-	// 	// 	oneAttaTime(n, i);
-	// 	// }
-	// 	// Repeat for 2nd & 3rd choices...
-	// }
-
+	oneAttaTime();
 	anyLeft();
 	printResults();
 	students_small = {
@@ -691,20 +643,34 @@ function runWeightedMatch(r) {
 
 				//check if more than one thing is at this weight; if so, shuffle
 
+				//if (thisStudent.weights.teacherWt >= w) {
 				if (thisStudent.matchAttempts.byTeacher < r && thisStudent.weights.teacherWt >= w) {
-					matchTeacher(thisStudent, false);
+					var shouldRun = checkIfShouldRun(thisStudent,'t');
+
+					if (shouldRun) {
+
+						matchTeacher(thisStudent, false);
+					}
 					//run teacher match for all prefs lower than this interation
 				}
 
 				if (thisStudent.matchAttempts.byInterest < r && thisStudent.weights.interestWt >= w) {
-					matchTeacher(thisStudent, true);
+					var shouldRun = checkIfShouldRun(thisStudent,'i');
+
+					if (shouldRun) {
+						matchTeacher(thisStudent, true);
+					}
 					//run teacher match by weight for all prefs lower than this iteration
 				}
 
 				if (thisStudent.matchAttempts.byPeer < r && thisStudent.weights.peerWt >= w) {
 					//check if any peers already in w/ space, 
 					//else push to peer buffer
-					matchByPeers(thisStudent);
+					var shouldRun = checkIfShouldRun(thisStudent,'p');
+
+					if (shouldRun) {
+						matchByPeers(thisStudent);
+					}
 				}
 			}
 		}
@@ -816,6 +782,64 @@ function matchByPeers(s) {
 	}
 }
 
+function checkIfShouldRun(s, matchType) {
+	var check1 = false;
+	var check2 = false;
+
+	var tWt = s.weights.teacherWt;
+	var iWt = s.weights.interestWt;
+	var pWt = s.weights.peerWt;
+	var tTries = s.matchAttempts.byTeacher;
+	var iTries = s.matchAttempts.byInterest;
+	var pTries = s.matchAttempts.byPeer;
+
+	console.log("For student " + s.username + "...");
+
+	switch (matchType) {
+		case 't':
+			console.log("Checking teacher vs interest:");
+			check1 = compareWts(tWt, iWt, iTries);
+			console.log("Checking teacher vs peer:");
+			check2 = compareWts(tWt, pWt, pTries);
+			break;
+		case 'i':
+			console.log("Checking interest vs teacher:");
+			check1 = compareWts(iWt, tWt, tTries);
+			console.log("Checking interest vs peer:");
+			check2 = compareWts(iWt, pWt, pTries);
+			break;
+		case 'p':
+			console.log("Checking peer vs teacher:");
+			check1 = compareWts(pWt, tWt, tTries);
+			console.log("Checking peer vs interest:");
+			check2 = compareWts(pWt, iWt, iTries);
+			break;
+	}
+
+
+
+	if (check1 && check2) {
+		console.log("This check should run!");
+		return true;
+	} else {
+		console.log("This check should not run!");
+		return false;
+	}
+}
+
+function compareWts(thisWt, otherWt, otherMatchTries) {
+
+	var otherMinusThis = otherWt - thisWt;
+
+	console.log("OtherWt - ThisWt is " + otherMinusThis);
+	console.log("and otherMatchTries is " + otherMatchTries);
+	if (otherMinusThis <= otherMatchTries) {
+		return true;
+	} else {
+		return false;
+	}
+}
+
 // function getSectionByTeacher(t) {
 // 	//var foundSection = {};
 // 	for (i in theses) {
@@ -876,138 +900,39 @@ function processStudent(n, i) {
 }
 
 
-function oneAttaTime(n, i) {
+function oneAttaTime() {
 	console.log("Running One At A Time");
 	// For all the students...
 	for (var j = 0; j < students.length; j++) {
-		// If they are not enrolled in this section and want to be...
-		if (students[shuffled_ids[j]].choices[n] == theses[i].teacher && students[shuffled_ids[j]].thesis == -1) {
-			//if (students[shuffled_ids[j]].choices[n] == i && students[shuffled_ids[j]].thesis == -1) {
-			// If there's still room...
-			if (theses[i].enrolled.length < theses[i].total) {
-				// That student is enrolled in the section
-				addStudent(students[shuffled_ids[j]], i);
-				friendIn(n, i);
 
-				//is friend out problematic? it puts you in if one of your peer selects is in the class,
-				//even if they didn't select you
+		if (students[shuffled_ids[j]].thesis < 0) {
 
-				//WILL RUN AT END OF ROUND ANYWAY
-				//friendOut(n, i);
-			}
-		}
-	}
-}
+			for (n in students[shuffled_ids[j]].choices) {
 
+				for (i in theses) {
+					// If they are not enrolled in this section and want to be...
+					if (students[shuffled_ids[j]].choices[n] == theses[i].teacher && theses[i].enrolled.length < theses[i].maxSize) {
+						//if (students[shuffled_ids[j]].choices[n] == i && students[shuffled_ids[j]].thesis == -1) {
+						// If there's still room...
 
-function teacherChoice(i, choosers) {
-	//B.C. : REVERSED THESE FOR LOOPS TO RANDOMIZE ORDER TEACHER-CHOSEN STUDENTS ARE ADDED TO CLASS
-	for (var k = 0; k < choosers.length; k++) {
-		for (var j = 0; j < theses[i].teacher_pref.length; j++) {
+						// That student is enrolled in the section
+						addStudent(students[shuffled_ids[j]], i);
+						//friendIn(n, i);
 
-			// If the teacher selected any of those students... 
-			if (choosers[k] == theses[i].teacher_pref[j]) {
-				// Add them to that section
-				addStudent(students[choosers[k]], i);
-				teacher_chosen++;
-			}
-		}
-	}
-}
+						//is friend out problematic? it puts you in if one of your peer selects is in the class,
+						//even if they didn't select you
 
-
-
-function friendIn(n, i) {
-	//n = choice ranking (1st, 2nd, 3rd as 0,1,2); 
-	//i = thesis section (as array indices 0 - max);
-	console.log("Running friend in");
-
-	// RUN THE WHOLE THING AGAIN FOR NON-TEACHER PICKS...
-
-	// reset the peer index (to loop through peer arrays of all non-teacher picks)
-	peerIndex = 0;
-	// As long as we're still within the maximum number of peers allowed...
-	// while (peerIndex < maxPeers) {
-
-	//this allows more peers if someone gets their 2nd or 3rd choice
-	var peersAllowed = n + 1;
-	while (peerIndex < peersAllowed) {
-		console.log("Peer Index is: " + peerIndex);
-
-		// For all the students...
-
-		for (var j = 0; j < students.length; j++) {
-
-			var thisStudent = students[shuffled_ids[j]];
-
-			// Check to see if this student still has peers in their peer array
-			// (since students can select fewer peers than the max)
-
-			// If they are now enrolled in this section and and there's room...
-			if (thisStudent.thesis == i && theses[i].enrolled.length < theses[i].total) {
-				// If they are now enrolled in this section...
-
-				//create a counter to advance through peers, searching for a peer who ranked this section
-				if (peerIndex < thisStudent.peers.length) {
-					var peerIndexAdvance = 0;
-
-					// Cycle through that sutdents peers and find the first one (if any) who ranked this section as their choice for this iteration (1st, 2nd, 3rd)
-					while (peerIndexAdvance < thisStudent.peers.length - peerIndex) {
-						var tempIndex = peerIndex + peerIndexAdvance;
-						var peerID = thisStudent.peers[tempIndex];
-						//console.log("Peer" + peerID + " of " + thisStudent.name);
-						//console.log(students[peerID]);
-
-						if (students[peerID] !== undefined && students[peerID].choices[n] !== undefined && students[peerID].choices[n] == theses[i].teacher && students[peerID].thesis == -1) {
-
-							addStudent(students[peerID], i);
-							//console.log("Peer " + students[peerID].name + " of " + thisStudent.name + " added to " + i + "!");
-							break;
-						} else {
-							peerIndexAdvance++;
-						}
+						//WILL RUN AT END OF ROUND ANYWAY
+						//friendOut(n, i);
 
 					}
 				}
-
-			}
-		}
-
-		peerIndex++;
-	}
-}
-
-
-function friendOut(n, i) {
-
-	console.log("Running Friend Out");
-	// For all the students...
-	for (var j = 0; j < students.length; j++) {
-		// If they are not enrolled in this section and want to be...
-		var thisStudent = students[shuffled_ids[j]];
-		//console.log("Peers for " + thisStudent.username + " are:");
-		//console.log(thisStudent.peers);
-		if (thisStudent.choices[n] == theses[i].teacher && thisStudent.thesis == -1) {
-
-			//CHANGED THIS TO BE MAX PEERS:
-			var peersToRunThrough = maxPeers;
-
-			if (thisStudent.peers.length < maxPeers) {
-				peersToRunThrough = thisStudent.peers.length;
-			}
-
-			for (var k = 0; k < peersToRunThrough; k++) {
-				//for (var k = 0; k < thisStudent.peers.length; k++) {
-				// If any of their peers are already enrolled in the section and there's still room...
-				var peerID = thisStudent.peers[k];
-				if (students[peerID].thesis == i && theses[i].enrolled.length < theses[i].total) {
-					// That student is enrolled in the section
-					addStudent(thisStudent, i);
-				}
 			}
 		}
 	}
 }
+
+
 
 function spaceLeft(n, i) {
 	// For all the students...
@@ -1108,7 +1033,148 @@ function dataviz() {
 
 
 
-	$('.dataviz tbody').append('<tr><td>' + dataviz.got_first + ' -> ' + (dataviz.got_first / students.length) * 100 + '%</td><td>' + dataviz.got_second + ' -> ' + (dataviz.got_second / students.length) * 100 + '%</td><td>' + dataviz.got_third + ' -> ' + (dataviz.got_third / students.length) * 100 + '%</td><td>' + dataviz.got_one + ' -> ' + (dataviz.got_one / students.length) * 100 + '%</td><td>' + dataviz.got_none + ' -> ' + (dataviz.got_none / students.length) * 100 + '%</td><td>' + dataviz.got_peers + ' -> ' + (dataviz.got_peers / students.length) * 100 + '%</td></tr>');
+	$('.dataviz tbody').append('<tr><td>' + dataviz.got_first + ' / ' + (dataviz.got_first / students.length) * 100 + '%</td><td>' + dataviz.got_second + ' / ' + (dataviz.got_second / students.length) * 100 + '%</td><td>' + dataviz.got_third + ' / ' + (dataviz.got_third / students.length) * 100 + '%</td><td>' + dataviz.got_one + ' / ' + (dataviz.got_one / students.length) * 100 + '%</td><td>' + dataviz.got_none + ' / ' + (dataviz.got_none / students.length) * 100 + '%</td><td>' + dataviz.got_peers + ' / ' + (dataviz.got_peers / students.length) * 100 + '%</td></tr>');
+
+}
+
+function datavizNew() {
+
+	console.log("Running dataviz new");
+
+	for (s in students) {
+		//var thisStudent = students[shuffled_ids[i]];
+		var thisStudent = students[s];
+
+		var results = {
+			//setting 100 on first 2 so it's higher than any possible max
+			"gotTeacherChoice": 100,
+			"gotInterestChoice": 100,
+			"gotPeers": 0
+
+		}
+
+		var thesisIndex = thisStudent.thesis;
+		var assignedThesis = theses[thesisIndex];
+		//theses[thesisIndex] = this student's assigned thesis
+		for (i in thisStudent.choices) {
+			if (assignedThesis.teacher == thisStudent.choices[i]) {
+				results.gotTeacherChoice = i;
+				break;
+			}
+		}
+
+		for (i in thisStudent.choicesByInterest) {
+			if (assignedThesis.teacher == thisStudent.choicesByInterest[i]) {
+				results.gotInterestChoice = i;
+				break;
+			}
+		}
+
+		thisStudent.peers.forEach(function(peerIndex) {
+			for (i in assignedThesis.enrolled) {
+				var enrolledStudentIndex = assignedThesis.enrolled[i];
+
+				if (peerIndex == enrolledStudentIndex) {
+					results.gotPeers++;
+					break;
+				}
+			}
+		});
+
+		thisStudent["results"] = results;
+
+		console.log("Results for " + thisStudent.username + ":");
+		console.log(thisStudent.results);
+	}
+
+	var teacherHighest = 0;
+	var interestHighest = 0;
+	var peersHighest = 0;
+
+	var gotTop3Teacher = 0;
+	var gotTop3Interest = 0;
+	var gotOnePeer = 0;
+	var gotMultPeers = 0;
+	var gotNothin = 0;
+
+	for (i in students) {
+
+		var s = students[i];
+
+		var tWt = s.weights.teacherWt;
+		var iWt = s.weights.interestWt;
+		var pWt = s.weights.peerWt;
+
+		if (tWt >= iWt && tWt >= pWt) {
+			teacherHighest++;
+
+			if (s.results.gotTeacherChoice < 3) {
+				gotTop3Teacher++;
+			}
+
+		} else if (pWt > tWt && pWt >= iWt) {
+			peersHighest++;
+
+			if (s.results.gotPeers > 0) {
+				gotOnePeer++;
+			}
+			if (s.results.gotPeers > 1) {
+				gotMultPeers++;
+			}
+
+		} else {
+
+			//console.log("Interest weighted highest for " + s.username);
+			interestHighest++;
+
+			if (s.results.gotInterestChoice < 3) {
+				gotTop3Interest++;
+			}
+		}
+
+		if (s.results.gotTeacherChoice >= 3 && s.results.gotInterestChoice >= 3 && s.results.gotPeers < 1) {
+			gotNothin++;
+		}
+	}
+
+
+
+	//console.log("This Student is: " + thisStudent.username);
+	//console.log("This student's thesis index is: " + thesisIndex);
+
+	var gotTeacherPct = gotTop3Teacher / teacherHighest * 100;
+	//gotTeacherPct = gotTeacherPct.substr(0,3);
+
+	var gotInterestPct = gotTop3Interest / interestHighest * 100;
+	//gotInterestPct = gotInterestPct.substr(0,3);
+
+	var gotPeerPct = gotOnePeer / peersHighest * 100;
+	//gotPeerPct = gotPeerPct.substr(0,3);
+
+	var gotPeersPct = gotMultPeers / peersHighest * 100;
+	//gotMultPeers = gotMultPeers.substr(0,3);
+
+
+	//got_one = got_first + got_second + got_third;
+
+	//console.log(got_first + ", " + got_second + ", " + got_third + ", " + got_one + ", " + got_none + ", " + got_peers);
+
+	var dataviz = {
+		"gotTop3Teacher": gotTop3Teacher,
+		"gotTeacherPct": gotTeacherPct,
+		"gotTop3Interest": gotTop3Interest,
+		"gotInterestPct": gotInterestPct,
+		"gotOnePeer": gotOnePeer,
+		"gotPeerPct": gotPeerPct,
+		"gotMultPeers": gotMultPeers,
+		"gotPeersPct": gotPeersPct
+	}
+
+
+
+	$('.datavizNew tbody').append(
+		'<tr><td>' + gotTop3Teacher + ' / ' + teacherHighest + '<br />(' + gotTeacherPct + '%)</td><td>' + gotTop3Interest + ' / ' + interestHighest + '<br />(' + gotInterestPct + '%)</td><td>' + gotOnePeer + ' / ' + peersHighest + '<br />(' + gotPeerPct + '%)</td><td>' + gotMultPeers + ' / ' + peersHighest + '<br />(' + gotPeersPct + '%)</td><td>' + gotNothin + ' / ' + students.length + '<br />(' + gotNothin / students.length * 100 + '%)</td>'
+	);
 
 
 }

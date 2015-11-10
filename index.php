@@ -141,15 +141,18 @@ ul, ol, dl {
 					</tbody>
 				</table>
 
+				<h2>(Only shows results if Weighted Algorithm run:)</h2>
 				<table class="datavizNew">
 					<thead>
 					<tr>
 						<th>Students that weighted teacher highest &amp; got a top-3 choice</th>
-						<th>Number + % of Students that got 2nd Choice</th>
-						<th>Number + % of Students that got 3rd Choice</th>
-						<th>Number + % of Students that got One of Their Choices</th>
+						<th>Students that weighted interest highest &amp; got a top-3 interest match</th>
+						<th>Students that weighted peers highest &amp; got at least one peer</th>
+						<th>Students that weighted peers highest &amp; got at least two peers</th>
+						<th>Students that got no peers &amp; no top-3 placement</th>
+						<!-- <th>Number + % of Students that got One of Their Choices</th>
 						<th>Number + % of Students that got none of their choices</th>
-						<th>Number + % of Students that got at least peer</th>
+						<th>Number + % of Students that got at least peer</th> -->
 					</tr>
 					</thead>
 					<tbody>
