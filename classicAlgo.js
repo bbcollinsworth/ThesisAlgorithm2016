@@ -31,8 +31,12 @@ var vizObject = {};
 
 var maxSectionSize = 10;
 var minSectionSize = 8;
-//B.C.: maximum number of peers... MUST BE CHANGED EACH YEAR or SET TO AUTO-UPDATE
-var maxPeers = 2;
+
+//B.C.: 
+//This is old variable for maximum # of peers,
+//BUT it's not used in current version...
+//Instead, the less good your teacher match is, the more peers the algo tries to match you with
+var maxPeers = 4;
 
 var students = [];
 var student_data = [];
@@ -586,7 +590,6 @@ function friendIn(n, i) {
 	// reset the peer index (to loop through peer arrays of all non-teacher picks)
 	peerIndex = 0;
 	// As long as we're still within the maximum number of peers allowed...
-	// while (peerIndex < maxPeers) {
 
 	//*****IMPORTANT****
 	//this allows more peers if someone gets their 2nd or 3rd choice

@@ -31,8 +31,11 @@ var vizObject = {};
 
 var maxSectionSize = 10;
 var minSectionSize = 8;
-//B.C.: maximum number of peers... MUST BE CHANGED EACH YEAR or SET TO AUTO-UPDATE
-var maxPeers = 2;
+
+//B.C.: 
+//This is old variable for maximum # of peers,
+//BUT it's not used in current version...var 
+maxPeers = 4;
 
 var matchRound;
 
