@@ -37,4 +37,6 @@ ehthumbs.db
 Thumbs.db
 
 # Excel files
-*.xlsx*.tsv*.csv
+*.xlsx
+*.tsv
+*.csv
