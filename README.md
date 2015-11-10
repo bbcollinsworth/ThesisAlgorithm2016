@@ -1,6 +1,6 @@
 The two files used to run the algorithm are:
 
-- index.php (which displays results of each run upon refresh)
+- index.html (which displays results of each run upon refresh)
 - wow.js (the JavaScript that actually contains the algorithm and related data parsing and results display code)
 
 In order to work, these files also need both a "students.json" and "teachers.json" file.

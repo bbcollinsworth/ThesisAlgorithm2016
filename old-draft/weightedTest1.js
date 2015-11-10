@@ -2,16 +2,6 @@
 //These arrays tell the algo which columns should combined into
 //arrays/objects for each student's teacher choices, peer choices and interests
 
-//IF THESE CHANGE IN THE ORIGINAL DATA SHEET, THEY SHOULD BE UPDATED HERE:
-var teachers = [
-	"Romero",
-	"Carroll",
-	"Harding",
-	"Macklin",
-	"Sebek",
-	"Genova",
-	"Tandefelt"
-];
 
 var choiceHeaders = [
 	"firstChoice",
@@ -36,6 +26,9 @@ var weightHeaders = [
 	"interestWt"
 ];
 
+var manyRunResults = [];
+var vizObject = {};
+
 var maxSectionSize = 10;
 var minSectionSize = 8;
 //B.C.: maximum number of peers... MUST BE CHANGED EACH YEAR or SET TO AUTO-UPDATE
@@ -54,12 +47,6 @@ var dataviz;
 var datavizNew;
 var iteration;
 
-var got_first = 0;
-var got_second = 0;
-var got_third = 0;
-var got_none = 0;
-var got_one = 0;
-var got_peers = 0;
 var ajaxed = false;
 var numstudents = 0;
 
@@ -85,7 +72,7 @@ jQuery(document).ready(function($) {
 			// get number of students
 			numstudents = students.length;
 			// B.C.: The following creates an array of index numbers, from 0 to students.length, in random order
-			shuffled_ids = uniqueRandom(students.length, students.length);
+			// shuffled_ids = uniqueRandom(students.length, students.length);
 
 			$.ajax({
 
@@ -107,11 +94,36 @@ jQuery(document).ready(function($) {
 			}
 */
 					// This is the algorithm
-					sausage_factory();
+					//var runCounter = 50;
 
-					dataviz = dataviz();
+					//while (runCounter > 0) {
+						//shuffled_ids.splice(0,shuffled_ids.length);
 
-					datavizNew = datavizNew();
+						shuffled_ids = uniqueRandom(students.length, students.length);
+
+						sausage_factory();
+
+						//vizObject = {};
+						//dataviz = 
+						dataviz();
+						// datavizNew = datavizNew(3);
+						// datavizNew = dataVizNew(2);
+						datavizNew(1);
+						datavizNew(2);
+						datavizNew(3);
+
+						// var ResToPush = {
+
+						// }
+						//var thisRun = runCounter;
+
+						manyRunResults.push(vizObject);
+						//runCounter--;
+					//}
+
+					console.log("RunResults: ");
+					console.log(JSON.stringify(manyRunResults));
+					$('.results').append(JSON.stringify(manyRunResults));
 
 					ajaxed = true;
 					// Functions
@@ -645,7 +657,7 @@ function runWeightedMatch(r) {
 
 				//if (thisStudent.weights.teacherWt >= w) {
 				if (thisStudent.matchAttempts.byTeacher < r && thisStudent.weights.teacherWt >= w) {
-					var shouldRun = checkIfShouldRun(thisStudent,'t');
+					var shouldRun = checkIfShouldRun(thisStudent, 't');
 
 					if (shouldRun) {
 
@@ -655,7 +667,7 @@ function runWeightedMatch(r) {
 				}
 
 				if (thisStudent.matchAttempts.byInterest < r && thisStudent.weights.interestWt >= w) {
-					var shouldRun = checkIfShouldRun(thisStudent,'i');
+					var shouldRun = checkIfShouldRun(thisStudent, 'i');
 
 					if (shouldRun) {
 						matchTeacher(thisStudent, true);
@@ -666,7 +678,7 @@ function runWeightedMatch(r) {
 				if (thisStudent.matchAttempts.byPeer < r && thisStudent.weights.peerWt >= w) {
 					//check if any peers already in w/ space, 
 					//else push to peer buffer
-					var shouldRun = checkIfShouldRun(thisStudent,'p');
+					var shouldRun = checkIfShouldRun(thisStudent, 'p');
 
 					if (shouldRun) {
 						matchByPeers(thisStudent);
@@ -976,9 +988,24 @@ function studentsLeft() {
 	return sl;
 }
 
+
+
+function pushToVizObject(header, content) {
+	vizObject[header] = content;
+	console.log("After adding " + header + ", VizObject is: ");
+	console.log(vizObject);
+}
+
 function dataviz() {
 
 	console.log("Running dataviz");
+
+	var got_first = 0;
+	var got_second = 0;
+	var got_third = 0;
+	var got_none = 0;
+	var got_one = 0;
+	var got_peers = 0;
 
 	for (var i = 0; i < students.length; i++) {
 		//var thisStudent = students[shuffled_ids[i]];
@@ -987,57 +1014,74 @@ function dataviz() {
 		//console.log("This Student is: " + thisStudent.username);
 		//console.log("This student's thesis index is: " + thesisIndex);
 
-		if (thisStudent.weights.teacherWt >= thisStudent.weights.peerWt) {
-			if (thisStudent.choices[0] == theses[thesisIndex].teacher) {
+		if (thisStudent.choices[0] == theses[thesisIndex].teacher) {
 
-				got_first++;
-			} else if (thisStudent.choices[1] == theses[thesisIndex].teacher) {
-				got_second++;
-			} else if (thisStudent.choices[2] == theses[thesisIndex].teacher) {
-				got_third++
-			} else {
-				got_none++;
-			}
+			got_first++;
+		} else if (thisStudent.choices[1] == theses[thesisIndex].teacher) {
+			got_second++;
+		} else if (thisStudent.choices[2] == theses[thesisIndex].teacher) {
+			got_third++;
+		} else {
+			got_none++;
 		}
 
-		if (thisStudent.weights.teacherWt < thisStudent.weights.peerWt) {
-			var peers = students[shuffled_ids[i]].peers;
-			var flag = false;
-			for (var j = 0; j < peers.length; j++) {
-				var peer_id = peers[j];
-				var peer = students[peer_id];
 
-				//need undefined because not all people have full peer lists
-				if (peer !== undefined && peer.thesis == students[shuffled_ids[i]].thesis) {
-					flag = true;
-				}
-			}
-			if (flag) {
-				got_peers++;
+		var peers = students[shuffled_ids[i]].peers;
+		var flag = false;
+		for (var j = 0; j < peers.length; j++) {
+			var peer_id = peers[j];
+			var peer = students[peer_id];
+
+			//need undefined because not all people have full peer lists
+			if (peer !== undefined && peer.thesis == students[shuffled_ids[i]].thesis) {
+				flag = true;
 			}
 		}
+		if (flag) {
+			got_peers++;
+		}
+
 	}
 
 	got_one = got_first + got_second + got_third;
 
-	console.log(got_first + ", " + got_second + ", " + got_third + ", " + got_one + ", " + got_none + ", " + got_peers);
+	var gotFirstPct = Math.round((got_first / students.length) * 100);
+
+	var gotSecondPct = Math.round((got_second / students.length) * 100);
+
+	var gotThirdPct = Math.round((got_third / students.length) * 100);
+
+	var gotNonePct = Math.round((got_none / students.length) * 100);
+
+	var gotOnePct = Math.round((got_one / students.length) * 100);
+
+	var gotPeersPct = Math.round((got_peers / students.length) * 100);
 
 	var dataviz = {
 		"got_first": got_first,
+		"gotFirstPct": gotFirstPct,
 		"got_second": got_second,
+		"gotSecondPct": gotSecondPct,
 		"got_third": got_third,
+		"gotThirdPct": gotThirdPct,
 		"got_none": got_none,
+		"gotNonePct": gotNonePct,
 		"got_one": got_one,
-		"got_peers": got_peers
-	}
+		"gotOnePct": gotOnePct,
+		"got_peers": got_peers,
+		"gotPeersPct": gotPeersPct
+	};
 
+	pushToVizObject("oldViz", dataviz);
 
-
-	$('.dataviz tbody').append('<tr><td>' + dataviz.got_first + ' / ' + (dataviz.got_first / students.length) * 100 + '%</td><td>' + dataviz.got_second + ' / ' + (dataviz.got_second / students.length) * 100 + '%</td><td>' + dataviz.got_third + ' / ' + (dataviz.got_third / students.length) * 100 + '%</td><td>' + dataviz.got_one + ' / ' + (dataviz.got_one / students.length) * 100 + '%</td><td>' + dataviz.got_none + ' / ' + (dataviz.got_none / students.length) * 100 + '%</td><td>' + dataviz.got_peers + ' / ' + (dataviz.got_peers / students.length) * 100 + '%</td></tr>');
+	$('.dataviz tbody').append('<tr><td>' + dataviz.got_first + ' / ' + Math.round((dataviz.got_first / students.length) * 100) + '%</td><td>' + dataviz.got_second + ' / ' + Math.round((dataviz.got_second / students.length) * 100) + '%</td><td>' + dataviz.got_third + ' / ' + Math.round((dataviz.got_third / students.length) * 100) + '%</td><td>' + dataviz.got_one + ' / ' + Math.round((dataviz.got_one / students.length) * 100) + '%</td><td>' + dataviz.got_none + ' / ' + Math.round((dataviz.got_none / students.length) * 100) + '%</td><td>' + dataviz.got_peers + ' / ' + Math.round((dataviz.got_peers / students.length) * 100) + '%</td></tr>');
 
 }
 
-function datavizNew() {
+function datavizNew(gotChoiceThreshold) {
+	//gotChoiceThreshold = what minimum choice we are checking people got
+	//e.g. everyone who got 3rd choice or better (threshold = 3)
+	//...2nd choice or better (threshold = 2)
 
 	console.log("Running dataviz new");
 
@@ -1091,8 +1135,8 @@ function datavizNew() {
 	var interestHighest = 0;
 	var peersHighest = 0;
 
-	var gotTop3Teacher = 0;
-	var gotTop3Interest = 0;
+	var gotTopTeacher = 0;
+	var gotTopInterest = 0;
 	var gotOnePeer = 0;
 	var gotMultPeers = 0;
 	var gotNothin = 0;
@@ -1108,8 +1152,8 @@ function datavizNew() {
 		if (tWt >= iWt && tWt >= pWt) {
 			teacherHighest++;
 
-			if (s.results.gotTeacherChoice < 3) {
-				gotTop3Teacher++;
+			if (s.results.gotTeacherChoice < gotChoiceThreshold) {
+				gotTopTeacher++;
 			}
 
 		} else if (pWt > tWt && pWt >= iWt) {
@@ -1127,12 +1171,12 @@ function datavizNew() {
 			//console.log("Interest weighted highest for " + s.username);
 			interestHighest++;
 
-			if (s.results.gotInterestChoice < 3) {
-				gotTop3Interest++;
+			if (s.results.gotInterestChoice < gotChoiceThreshold) {
+				gotTopInterest++;
 			}
 		}
 
-		if (s.results.gotTeacherChoice >= 3 && s.results.gotInterestChoice >= 3 && s.results.gotPeers < 1) {
+		if (s.results.gotTeacherChoice >= gotChoiceThreshold && s.results.gotInterestChoice >= gotChoiceThreshold && s.results.gotPeers < 1) {
 			gotNothin++;
 		}
 	}
@@ -1142,38 +1186,44 @@ function datavizNew() {
 	//console.log("This Student is: " + thisStudent.username);
 	//console.log("This student's thesis index is: " + thesisIndex);
 
-	var gotTeacherPct = gotTop3Teacher / teacherHighest * 100;
+	var gotTeacherPct = Math.round(gotTopTeacher / teacherHighest * 100);
 	//gotTeacherPct = gotTeacherPct.substr(0,3);
 
-	var gotInterestPct = gotTop3Interest / interestHighest * 100;
+	var gotInterestPct = Math.round(gotTopInterest / interestHighest * 100);
 	//gotInterestPct = gotInterestPct.substr(0,3);
 
-	var gotPeerPct = gotOnePeer / peersHighest * 100;
+	var gotPeerPct = Math.round(gotOnePeer / peersHighest * 100);
 	//gotPeerPct = gotPeerPct.substr(0,3);
 
-	var gotPeersPct = gotMultPeers / peersHighest * 100;
+	var gotPeersPct = Math.round(gotMultPeers / peersHighest * 100);
 	//gotMultPeers = gotMultPeers.substr(0,3);
 
+	var gotSomething = (students.length - gotNothin);
+
+	var gotSomethingPct = Math.round((students.length - gotNothin) / students.length * 100);
 
 	//got_one = got_first + got_second + got_third;
 
 	//console.log(got_first + ", " + got_second + ", " + got_third + ", " + got_one + ", " + got_none + ", " + got_peers);
 
 	var dataviz = {
-		"gotTop3Teacher": gotTop3Teacher,
+		"gotTopTeacher": gotTopTeacher,
 		"gotTeacherPct": gotTeacherPct,
-		"gotTop3Interest": gotTop3Interest,
+		"gotTopInterest": gotTopInterest,
 		"gotInterestPct": gotInterestPct,
 		"gotOnePeer": gotOnePeer,
 		"gotPeerPct": gotPeerPct,
 		"gotMultPeers": gotMultPeers,
-		"gotPeersPct": gotPeersPct
-	}
+		"gotPeersPct": gotPeersPct,
+		"gotSomething": gotSomething,
+		"gotSomethingPct": gotSomethingPct
+	};
 
-
+	var vizHeader = "newViz" + gotChoiceThreshold;
+	pushToVizObject(vizHeader, dataviz);
 
 	$('.datavizNew tbody').append(
-		'<tr><td>' + gotTop3Teacher + ' / ' + teacherHighest + '<br />(' + gotTeacherPct + '%)</td><td>' + gotTop3Interest + ' / ' + interestHighest + '<br />(' + gotInterestPct + '%)</td><td>' + gotOnePeer + ' / ' + peersHighest + '<br />(' + gotPeerPct + '%)</td><td>' + gotMultPeers + ' / ' + peersHighest + '<br />(' + gotPeersPct + '%)</td><td>' + gotNothin + ' / ' + students.length + '<br />(' + gotNothin / students.length * 100 + '%)</td>'
+		'<tr><th>Top ' + gotChoiceThreshold + '</th><td>' + gotTopTeacher + ' / ' + teacherHighest + '<br />(' + gotTeacherPct + '%)</td><td>' + gotTopInterest + ' / ' + interestHighest + '<br />(' + gotInterestPct + '%)</td><td>' + gotOnePeer + ' / ' + peersHighest + '<br />(' + gotPeerPct + '%)</td><td>' + gotMultPeers + ' / ' + peersHighest + '<br />(' + gotPeersPct + '%)</td><td>' + (students.length - gotNothin) + ' / ' + students.length + '<br />(' + Math.round((students.length - gotNothin) / students.length * 100) + '%)</td>'
 	);
 
 

@@ -2,16 +2,6 @@
 //These arrays tell the algo which columns should combined into
 //arrays/objects for each student's teacher choices, peer choices and interests
 
-//IF THESE CHANGE IN THE ORIGINAL DATA SHEET, THEY SHOULD BE UPDATED HERE:
-var teachers = [
-	"Romero",
-	"Carroll",
-	"Irish",
-	"Macklin",
-	"Sebek",
-	"Genova",
-	"Tandefelt"
-];
 
 var choiceHeaders = [
 	"firstChoice",
@@ -36,6 +26,9 @@ var weightHeaders = [
 	"interestWt"
 ];
 
+var manyRunResults = [];
+var vizObject = {};
+
 var maxSectionSize = 10;
 var minSectionSize = 8;
 //B.C.: maximum number of peers... MUST BE CHANGED EACH YEAR or SET TO AUTO-UPDATE
@@ -50,12 +43,6 @@ var shuffled_ids = [];
 var dataviz;
 var iteration;
 
-var got_first = 0;
-var got_second = 0;
-var got_third = 0;
-var got_none = 0;
-var got_one = 0;
-var got_peers = 0;
 var ajaxed = false;
 var numstudents = 0;
 
@@ -64,9 +51,6 @@ jQuery(document).ready(function($) {
 
 
 	$.ajax({
-		// dataType: "json",
-		// url: "students.json",
-		// success: function(d) {
 
 		dataType: "text",
 		url: "data/testDataClean.txt",
@@ -85,38 +69,45 @@ jQuery(document).ready(function($) {
 			numstudents = students.length;
 			// B.C.: The following creates an array of index numbers, from 0 to students.length, in random order
 			shuffled_ids = uniqueRandom(students.length, students.length);
-			theses = generateTheses();
-			console.log(theses);
-
-			getThesisInterest();
-			/*
-			for(var i=0;i<unshuffled_students.length;i++){
-				// students[i] = unshuffled_students[i];
-				students[i] = unshuffled_students[shuffled_ids[i]];
-			}
-*/
-			// This is the algorithm
-			sausage_factory();
-
-			// Get dataviz data
-			//var dataviz = dataviz();
-			dataviz = dataviz();
-
-			ajaxed = true;
-			// Functions
 
 
-			$('#show_hide_students').click(function() {
-				if ($('table.students').hasClass('off')) {
-					$('table.students').removeClass('off');
-					$('#show_hide_students').html('-');
-				} else {
-					$('table.students').addClass('off');
-					$('#show_hide_students').html('+');
+			$.ajax({
+
+				dataType: "text",
+				url: "data/teacherData.txt",
+				success: function(td) {
+
+					var teacherData = parseTSV(td);
+					theses = generateTheses(teacherData);
+					console.log(theses);
+
+					getThesisInterest();
+					
+					// This is the algorithm
+					sausage_factory();
+
+					dataviz();
+
+					manyRunResults.push(vizObject);
+
+					console.log("RunResults: ");
+					console.log(JSON.stringify(manyRunResults));
+					$('.results').append(JSON.stringify(manyRunResults));
+
+					ajaxed = true;
+
+					$('#show_hide_students').click(function() {
+						if ($('table.students').hasClass('off')) {
+							$('table.students').removeClass('off');
+							$('#show_hide_students').html('-');
+						} else {
+							$('table.students').addClass('off');
+							$('#show_hide_students').html('+');
+						}
+					});
+
 				}
 			});
-			//}
-			//}
 		}
 
 	});
@@ -190,8 +181,6 @@ function restructureRawStudentData(rawStudents) {
 					break;
 				}
 			}
-			//peers.push(rawStudents.username.indexOf(thisStudent.peer));
-			//}
 		});
 		console.log(peers);
 
@@ -207,9 +196,7 @@ function restructureRawStudentData(rawStudents) {
 			}
 		}
 
-		//B.C. : PARSE STUDENTS' THESIS TEACHER 1ST, 2ND, 3RD CHOICES INTO ARRAY:
-		//var choices = rawStudents[N].choices;
-		//var choicesArr = (true) ? choices.split(" ") : "";
+		//B.C. : PARSE STUDENTS' THESIS TEACHER CHOICES INTO ARRAY:
 
 		var choicesArr = [];
 
@@ -223,7 +210,6 @@ function restructureRawStudentData(rawStudents) {
 
 		var formArr = thisStudent.form.split(", ");
 		formArr.forEach(function(formItem) {
-			//formItem.replace('""','"');
 			noQuotesArr = formItem.split('"');
 			formItem = "";
 			noQuotesArr.forEach(function(el) {
@@ -271,25 +257,32 @@ function restructureRawStudentData(rawStudents) {
 	}
 }
 
-function generateTheses() {
+function generateTheses(teacher_data) {
 	var sections = [];
-	for (var i = 0; i < teachers.length; i++) {
-		// if teacher doesn't have a student preference(?) add a blank array
-		//if (!prefs[i]) {
-		p = [];
-		//} else {
-		// otherwise make p their set of preferences
-		//p = prefs[i];
-		//}
+	for (var i = 0; i < teacher_data.length; i++) {
+		var t = teacher_data[i];
+
+		var tFormArray = [
+			t.form1.toLowerCase(),
+			t.form2.toLowerCase(),
+			t.form3.toLowerCase()
+		];
+		var tLensArray = [
+			t.lens1.toLowerCase(),
+			t.lens2.toLowerCase(),
+			t.lens3.toLowerCase()
+		];
 
 		sections[i] = {
 			"id": i,
-			"teacher": teachers[i],
+			"teacher": t.teacher,
+			"teacherForms": tFormArray,
+			"teacherLenses": tLensArray,
 			"total": maxSectionSize,
 			"maxSize": maxSectionSize,
 			"minSize": minSectionSize,
 			"enrolled": [],
-			"teacher_pref": p,
+			"teacher_pref": [],
 			"choices": [],
 			"not_chosen": 0,
 			"chosen": 0,
@@ -301,6 +294,7 @@ function generateTheses() {
 	return sections;
 
 }
+
 
 function getThesisInterest() {
 	// add student to total interest array to keep track of all students interested in each section / teacher
@@ -442,38 +436,30 @@ function sausage_factory() {
 		}
 	}
 
-
 	// The remaining sections are contested
 	// Iterations (x3) 1st, 2nd, & 3rd choices for thesis
 	for (var n = 0; n < 3; n++) {
 		console.log("Doing contested sections for Choice " + (n + 1));
-		// For each section...
-		for (var i = 0; i < theses.length; i++) {
-			// Find out which students selected that section as this iteration's choice (1st, 2nd, or 3rd). i=thesis section, n=choice, 1-3
-			//var choosers = getChoice(i, n);
-			var choosers = getChoice(theses[i].teacher, 0);
-			teacher_chosen = 0;
-			teacherChoice(i, choosers);
-		}
 
 		for (var i = 0; i < theses.length; i++) {
 			oneAttaTime(n, i);
 		}
 
-		for (var i = 0; i < theses.length; i++) {
+		//Functions below run too late to really make a difference
+		//(and FriendIn already runs within OneAttaTime)...
+
+		// for (var i = 0; i < theses.length; i++) {
 			//if (teacher_chosen > 0) {
 			//friendIn(n, i);
 			//}
-		}
-		for (var i = 0; i < theses.length; i++) {
-			//friendOut(n, i);
-		}
-		// for (var i = 0; i < theses.length; i++) {
-		// 	oneAttaTime(n, i);
 		// }
+		// for (var i = 0; i < theses.length; i++) {
+			//friendOut(n, i);
+		// }
+
 		// Repeat for 2nd & 3rd choices...
 	}
-	
+
 	anyLeft();
 	printResults();
 	students_small = {
@@ -572,17 +558,17 @@ function oneAttaTime(n, i) {
 	for (var j = 0; j < students.length; j++) {
 		// If they are not enrolled in this section and want to be...
 		if (students[shuffled_ids[j]].choices[n] == theses[i].teacher && students[shuffled_ids[j]].thesis == -1) {
-		//if (students[shuffled_ids[j]].choices[n] == i && students[shuffled_ids[j]].thesis == -1) {
+			//if (students[shuffled_ids[j]].choices[n] == i && students[shuffled_ids[j]].thesis == -1) {
 			// If there's still room...
 			if (theses[i].enrolled.length < theses[i].total) {
 				// That student is enrolled in the section
 				addStudent(students[shuffled_ids[j]], i);
 				friendIn(n, i);
 
-				//is friend out problematic? it puts you in if one of your peer selects is in the class,
-				//even if they didn't select you
+				//THE BELOW WOULD ADD PEOPLE TO CLASSES THAT ONE OF THEIR CHOSEN PEERS IS IN,
+				//EVEN IF THE PERSON IN THE CLASS DIDN'T PICK THEM AS PEER
+				//(Weighted algo version does this)
 
-				//WILL RUN AT END OF ROUND ANYWAY
 				//friendOut(n, i);
 			}
 		}
@@ -590,37 +576,21 @@ function oneAttaTime(n, i) {
 }
 
 
-function teacherChoice(i, choosers) {
-	//B.C. : REVERSED THESE FOR LOOPS TO RANDOMIZE ORDER TEACHER-CHOSEN STUDENTS ARE ADDED TO CLASS
-	for (var k = 0; k < choosers.length; k++) {
-		for (var j = 0; j < theses[i].teacher_pref.length; j++) {
-
-			// If the teacher selected any of those students... 
-			if (choosers[k] == theses[i].teacher_pref[j]) {
-				// Add them to that section
-				addStudent(students[choosers[k]], i);
-				teacher_chosen++;
-			}
-		}
-	}
-}
-
-
-
 function friendIn(n, i) {
 	//n = choice ranking (1st, 2nd, 3rd as 0,1,2); 
 	//i = thesis section (as array indices 0 - max);
 	console.log("Running friend in");
 
-	// RUN THE WHOLE THING AGAIN FOR NON-TEACHER PICKS...
+	// RUN THE WHOLE THING FOR NON-TEACHER PICKS...
 
 	// reset the peer index (to loop through peer arrays of all non-teacher picks)
 	peerIndex = 0;
 	// As long as we're still within the maximum number of peers allowed...
 	// while (peerIndex < maxPeers) {
 
+	//*****IMPORTANT****
 	//this allows more peers if someone gets their 2nd or 3rd choice
-	var peersAllowed = n+1;
+	var peersAllowed = n + 1;
 	while (peerIndex < peersAllowed) {
 		console.log("Peer Index is: " + peerIndex);
 
@@ -678,16 +648,16 @@ function friendOut(n, i) {
 		//console.log("Peers for " + thisStudent.username + " are:");
 		//console.log(thisStudent.peers);
 		if (thisStudent.choices[n] == theses[i].teacher && thisStudent.thesis == -1) {
-			
+
 			//CHANGED THIS TO BE MAX PEERS:
 			var peersToRunThrough = maxPeers;
 
-			if (thisStudent.peers.length < maxPeers){
+			if (thisStudent.peers.length < maxPeers) {
 				peersToRunThrough = thisStudent.peers.length;
 			}
 
 			for (var k = 0; k < peersToRunThrough; k++) {
-			//for (var k = 0; k < thisStudent.peers.length; k++) {
+				//for (var k = 0; k < thisStudent.peers.length; k++) {
 				// If any of their peers are already enrolled in the section and there's still room...
 				var peerID = thisStudent.peers[k];
 				if (students[peerID].thesis == i && theses[i].enrolled.length < theses[i].total) {
@@ -729,8 +699,6 @@ function anyLeft() {
 }
 
 
-
-
 function studentsLeft() {
 	var sl = [];
 	for (var i = 0; i < students.length; i++) {
@@ -741,23 +709,59 @@ function studentsLeft() {
 	return sl;
 }
 
+//NO MORE TEACHER CHOICE!!
+
+// function teacherChoice(i, choosers) {
+// 	//B.C. : REVERSED THESE FOR LOOPS TO RANDOMIZE ORDER TEACHER-CHOSEN STUDENTS ARE ADDED TO CLASS
+// 	for (var k = 0; k < choosers.length; k++) {
+// 		for (var j = 0; j < theses[i].teacher_pref.length; j++) {
+
+// 			// If the teacher selected any of those students... 
+// 			if (choosers[k] == theses[i].teacher_pref[j]) {
+// 				// Add them to that section
+// 				addStudent(students[choosers[k]], i);
+// 				teacher_chosen++;
+// 			}
+// 		}
+// 	}
+// }
+
+function pushToVizObject(header, content) {
+	vizObject[header] = content;
+	console.log("After adding " + header + ", VizObject is: ");
+	console.log(vizObject);
+}
+
 function dataviz() {
 
+	console.log("Running dataviz");
+
+	var got_first = 0;
+	var got_second = 0;
+	var got_third = 0;
+	var got_none = 0;
+	var got_one = 0;
+	var got_peers = 0;
+
 	for (var i = 0; i < students.length; i++) {
-		var thisStudent = students[shuffled_ids[i]];
+		//var thisStudent = students[shuffled_ids[i]];
+		var thisStudent = students[i];
 		var thesisIndex = thisStudent.thesis;
-		//console.log(thisStudent.name);
-		//console.log(theses[thesisIndex].teacher);
+		//console.log("This Student is: " + thisStudent.username);
+		//console.log("This student's thesis index is: " + thesisIndex);
+
 		if (thisStudent.choices[0] == theses[thesisIndex].teacher) {
 
 			got_first++;
 		} else if (thisStudent.choices[1] == theses[thesisIndex].teacher) {
 			got_second++;
 		} else if (thisStudent.choices[2] == theses[thesisIndex].teacher) {
-			got_third++
+			got_third++;
 		} else {
 			got_none++;
 		}
+
+
 		var peers = students[shuffled_ids[i]].peers;
 		var flag = false;
 		for (var j = 0; j < peers.length; j++) {
@@ -772,24 +776,43 @@ function dataviz() {
 		if (flag) {
 			got_peers++;
 		}
+
 	}
 
 	got_one = got_first + got_second + got_third;
 
-	console.log(got_first + ", " + got_second + ", " + got_third + ", " + got_one + ", " + got_none + ", " + got_peers);
+	//console.log(got_first + ", " + got_second + ", " + got_third + ", " + got_one + ", " + got_none + ", " + got_peers);
+
+	var gotFirstPct = Math.round((got_first / students.length) * 100);
+
+	var gotSecondPct = Math.round((got_second / students.length) * 100);
+
+	var gotThirdPct = Math.round((got_third / students.length) * 100);
+
+	var gotNonePct = Math.round((got_none / students.length) * 100);
+
+	var gotOnePct = Math.round((got_one / students.length) * 100);
+
+	var gotPeersPct = Math.round((got_peers / students.length) * 100);
 
 	var dataviz = {
 		"got_first": got_first,
+		"gotFirstPct": gotFirstPct,
 		"got_second": got_second,
+		"gotSecondPct": gotSecondPct,
 		"got_third": got_third,
+		"gotThirdPct": gotThirdPct,
 		"got_none": got_none,
+		"gotNonePct": gotNonePct,
 		"got_one": got_one,
-		"got_peers": got_peers
-	}
+		"gotOnePct": gotOnePct,
+		"got_peers": got_peers,
+		"gotPeersPct": gotPeersPct
+	};
 
+	pushToVizObject("oldViz", dataviz);
 
-
-	$('.dataviz tbody').append('<tr><td>' + dataviz.got_first + ' -> ' + (dataviz.got_first / students.length) * 100 + '%</td><td>' + dataviz.got_second + ' -> ' + (dataviz.got_second / students.length) * 100 + '%</td><td>' + dataviz.got_third + ' -> ' + (dataviz.got_third / students.length) * 100 + '%</td><td>' + dataviz.got_one + ' -> ' + (dataviz.got_one / students.length) * 100 + '%</td><td>' + dataviz.got_none + ' -> ' + (dataviz.got_none / students.length) * 100 + '%</td><td>' + dataviz.got_peers + ' -> ' + (dataviz.got_peers / students.length) * 100 + '%</td></tr>');
-
+	$('.dataviz tbody').append('<tr><td>' + dataviz.got_first + ' / ' + Math.round((dataviz.got_first / students.length) * 100) + '%</td><td>' + dataviz.got_second + ' / ' + Math.round((dataviz.got_second / students.length) * 100) + '%</td><td>' + dataviz.got_third + ' / ' + Math.round((dataviz.got_third / students.length) * 100) + '%</td><td>' + dataviz.got_one + ' / ' + Math.round((dataviz.got_one / students.length) * 100) + '%</td><td>' + dataviz.got_none + ' / ' + Math.round((dataviz.got_none / students.length) * 100) + '%</td><td>' + dataviz.got_peers + ' / ' + Math.round((dataviz.got_peers / students.length) * 100) + '%</td></tr>');
 
 }
+
