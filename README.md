@@ -19,6 +19,7 @@ TO RUN THE ALGORITHM, you first need to:
 ! IMPORTANT: In order for the data to import properly, these .txt files must be formatted with the headers and data that the algorithm's "parseTSV()" function is expecting, or that function and/or the header arrays in the .JS file must be changed. 
 
 ***Blank template files showing the current proper .txt data format are here:***
+
 studentData: https://docs.google.com/spreadsheets/d/1UEc_CE1siSug8nc_gLwIQXk9kRPgTSTiamXNCStcxBw/edit?usp=sharing
 teacherData: https://docs.google.com/spreadsheets/d/1egA2sWjXT2Hc_E6ylGg9T0m50lmqjgm1Gx4QlYbE9oM/edit?usp=sharing
 
