@@ -57,7 +57,7 @@ jQuery(document).ready(function($) {
 	$.ajax({
 
 		dataType: "text",
-		url: "data/testDataClean.txt",
+		url: "data/studentData.txt",
 		success: function(d) {
 
 			var rawStudentDataTable = parseTSV(d);
