@@ -1,43 +1,23 @@
-The two files used to run the algorithm are:
+The files used to run the algorithm are:
 
-- index.html (which displays results of each run upon refresh)
-- wow.js (the JavaScript that actually contains the algorithm and related data parsing and results display code)
+- index.html (the page that you actually load online, which displays results of each run upon refresh)
+- either "classicAlgo.js" OR "weightedAlgo.js" (the JavaScript files that actually contain the versions of the algorithm, and related data parsing and results display code)
 
-In order to work, these files also need both a "students.json" and "teachers.json" file.
+TO RUN THE ALGORITHM, you first need to:
 
-"students.json" must be formatted as follows, then uploaded to the same location as the wow.js and index.php files:
+1. set the last script in the "index.html" file to either...
 
-{<br />
-	"students": [{<br />
-		"name": "Last, First",<br />
-		"NetID": "N00XXXXXX",<br />
-		"choices": "Teacher1st Teacher2nd Teacher3rd",<br />
-		"peers": "N00XXXXXX N00XXXXXX N00XXXXXX N00XXXXXX",<br />
-		"thesis": -1<br />
-	}, {<br />
-		"name": "Last, First",<br />
-		"NetID": "N00XXXXXX",<br />
-		"choices": "Teacher1st Teacher2nd Teacher3rd",<br />
-		"peers": "N00XXXXXX N00XXXXXX N00XXXXXX N00XXXXXX",<br />
-		"thesis": -1<br />
-	}, <br />
-		 etc...<br />
-	]<br />
-}<br />
-<br />
-"teachers.json" must be formatted as follows, then uploaded to the same location:<br />
-<br />
-{<br />
-	"teachers": [{<br />
-		"name": "FirstThesisTeacher'sLastName",<br />
-		"choices": "N00XXXXXX N00XXXXXX N00XXXXXX N00XXXXXX N00XXXXXX"<br />
-	}, {<br />
-		"name": "SecondThesisTeacher'sLastName",<br />
-		"choices": "N00XXXXXX N00XXXXXX N00XXXXXX N00XXXXXX N00XXXXXX"<br />
-	}, <br />
-		etc...<br />
-	]<br />
-}<br />
-<br />
-Once all these files are uploaded, navigate to index.php in a browser to run the algorithm. Refresh the page to keep re-running for different results -- but NOTE that you should copy-paste out any results you want to save before you re-run.
+- "classicAlgo.js", which will run an algorithm that is based very closely on past year's versions, with the major difference being that faculty choices of students are no longer factored in, OR
+
+- "weightedAlgo.js", which will run a new version of the algorithm that factors in students' interest areas (form and lens) and attempts to match all students based on their preferred weighting of three criteria (teacher preference, interest areas or peer selections).
+
+2. add a "data" folder at the same level as your "index.html" file that contains two TSV (tab-separated) .txt files:
+- "studentData.txt", a tab-separated text file of all student data (ids, preferences, peer choices, etc.)
+- "teacherData.txt", a tab-separated text file of all teacher data for the upcoming thesis semester (including teacher form and lens rankings, if applicable)
+
+! IMPORTANT: In order for the data to import properly, these .txt files must be formatted with the headers and data that the algorithm's "parseTSV()" function is expecting, or that function and/or the header arrays in the .JS file must be changed. 
+
+***Blank template files showing the current proper .txt data format are included in this repo.***
+
+Once all these files are set up, navigate to index.php in a browser to run the algorithm. Refresh the page to keep re-running for different results -- but NOTE that you should copy-paste out any results you want to save before you re-run.
 	
