@@ -12,6 +12,7 @@ TO RUN THE ALGORITHM, you first need to:
 - "weightedAlgo.js", which will run a new version of the algorithm that factors in students' interest areas (form and lens) and attempts to match all students based on their preferred weighting of three criteria (teacher preference, interest areas or peer selections).
 
 2. add a "data" folder at the same level as your "index.html" file that contains two TSV (tab-separated) .txt files:
+
 - "studentData.txt", a tab-separated text file of all student data (ids, preferences, peer choices, etc.)
 - "teacherData.txt", a tab-separated text file of all teacher data for the upcoming thesis semester (including teacher form and lens rankings, if applicable)
 
